@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import Image from 'next/image'
 import { format, parseISO } from 'date-fns'
 import {
@@ -16,22 +16,50 @@ import {
   XCircle,
   DollarSign,
   Armchair,
+  Hourglass,
+  Loader2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
-import { eventsApi } from '@/lib/api'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { eventsApi, waitlistApi } from '@/lib/api'
 import { useAppStore } from '@/lib/store'
+import { toast } from 'sonner'
+import { useState } from 'react'
 
 export function EventDetailView() {
   const { selectedEventId, setSelectedShowId, navigate, user, openAuthDialog } = useAppStore()
+  const queryClient = useQueryClient()
+  const [waitlistShowId, setWaitlistShowId] = useState<string | null>(null)
+  const [waitlistCategory, setWaitlistCategory] = useState('')
 
   const { data, isLoading } = useQuery({
     queryKey: ['event', selectedEventId],
     queryFn: () => eventsApi.get(selectedEventId!),
     enabled: !!selectedEventId,
+  })
+
+  const waitlistMutation = useMutation({
+    mutationFn: ({ showId, seatCategoryId }: { showId: string; seatCategoryId: string }) =>
+      waitlistApi.join(showId, seatCategoryId),
+    onSuccess: () => {
+      toast.success('You have been added to the waitlist! You will be notified when a seat becomes available.')
+      setWaitlistShowId(null)
+      setWaitlistCategory('')
+      queryClient.invalidateQueries({ queryKey: ['waitlist'] })
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || 'Failed to join waitlist')
+    },
   })
 
   const event = data?.event as any
@@ -209,9 +237,56 @@ export function EventDetailView() {
                       </div>
                       <div className="flex items-center gap-2">
                         {isSoldOut ? (
-                          <Badge variant="secondary" className="gap-1">
-                            <XCircle className="h-3 w-3" /> Sold Out
-                          </Badge>
+                          waitlistShowId === show.id ? (
+                            <div className="flex items-center gap-2">
+                              <Select value={waitlistCategory} onValueChange={setWaitlistCategory}>
+                                <SelectTrigger className="w-[140px] h-8 text-xs">
+                                  <SelectValue placeholder="Category" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {event.eventPricings?.map((p: any) => (
+                                    <SelectItem key={p.seatCategory?.id} value={p.seatCategory?.id}>
+                                      {p.seatCategory?.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <Button
+                                size="sm"
+                                className="gap-1.5 bg-amber-600 hover:bg-amber-700"
+                                disabled={!waitlistCategory || waitlistMutation.isPending}
+                                onClick={() =>
+                                  waitlistCategory && waitlistMutation.mutate({ showId: show.id, seatCategoryId: waitlistCategory })
+                                }
+                              >
+                                {waitlistMutation.isPending ? (
+                                  <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Joining...</>
+                                ) : (
+                                  <><Hourglass className="h-3.5 w-3.5" /> Join Waitlist</>
+                                )}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => { setWaitlistShowId(null); setWaitlistCategory('') }}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-1.5 text-amber-600 border-amber-300 hover:bg-amber-50"
+                              onClick={() => {
+                                if (!user) { openAuthDialog('login'); return }
+                                setWaitlistShowId(show.id)
+                              }}
+                            >
+                              <Hourglass className="h-3.5 w-3.5" />
+                              Join Waitlist
+                            </Button>
+                          )
                         ) : show.status === 'CANCELLED' ? (
                           <Badge variant="destructive" className="gap-1">
                             <XCircle className="h-3 w-3" /> Cancelled

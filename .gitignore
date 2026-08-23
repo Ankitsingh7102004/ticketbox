@@ -29,26 +29,41 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+*.log
 
-# env files (can opt-in for committing if needed)
-.env*
+# env files
+.env
+.env.local
+.env.production
 
 # vercel
 .vercel
 
+# netlify
+.netlify
 
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-local-*
-.claude
-.z-ai-config
-*.log
-dev.log
-dev.out.log
-test
-prompt
 
+# database
+*.db
+*.db-journal
+
+# IDE
+.vscode/
+.idea/
+
+# project-specific
+db/
+agent-ctx/
+tool-results/
+examples/
+mini-services/
+upload/
+tests/
+skills/
+worklog.md
 server.log
-# Skills directory
-/skills/
+bun.lock
+download/
