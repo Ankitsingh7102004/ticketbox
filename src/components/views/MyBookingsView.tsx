@@ -13,6 +13,8 @@ import {
   XCircle,
   ChevronDown,
   ChevronUp,
+  QrCode,
+  Download,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -34,6 +36,7 @@ import { useAppStore } from '@/lib/store'
 import { toast } from 'sonner'
 import { format, parseISO } from 'date-fns'
 import { useState } from 'react'
+import { QRTicket } from '@/components/QRTicket'
 
 export function MyBookingsView() {
   const { navigate, openAuthDialog, user } = useAppStore()
@@ -56,6 +59,42 @@ export function MyBookingsView() {
     },
     onError: (err: Error) => toast.error(err.message),
   })
+
+  const handleDownloadTicket = (booking: any) => {
+    const show = booking.show
+    const event = show?.event
+    const venue = event?.venue
+    const seats = booking.bookingSeats ?? []
+    const lines = [
+      '═══════════════════════════════════════',
+      '          TICKETBOX E-TICKET',
+      '═══════════════════════════════════════',
+      '',
+      `Booking Ref: ${booking.bookingRef}`,
+      '',
+      `Event: ${event?.title}`,
+      `Venue: ${venue?.name}, ${venue?.location}`,
+      `Date: ${format(parseISO(show?.date), 'EEEE, MMMM d, yyyy')}`,
+      `Time: ${show?.time}`,
+      '',
+      `Seats: ${seats.map((bs: any) => `Row ${bs.seat?.row}, Seat ${bs.seat?.number} (${bs.seat?.seatCategory?.name})`).join(' | ')}`,
+      '',
+      `Total Paid: $${booking.totalAmount?.toFixed(2)}`,
+      '',
+      `Booked on: ${format(parseISO(booking.createdAt), 'MMM d, yyyy HH:mm')}`,
+      '',
+      '═══════════════════════════════════════',
+      '  Scan the QR code at the venue entrance',
+      '═══════════════════════════════════════',
+    ]
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `TicketBox-${booking.bookingRef}.txt`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
 
   if (!user) {
     return (
@@ -108,6 +147,15 @@ export function MyBookingsView() {
               const bookingSeats = booking.bookingSeats ?? []
               const isExpanded = expandedId === booking.id
               const isCancelled = booking.status === 'CANCELLED'
+              const qrData = JSON.stringify({
+                ref: booking.bookingRef,
+                event: event?.title,
+                date: show?.date,
+                time: show?.time,
+                venue: venue?.name,
+                seats: bookingSeats.map((bs: any) => `R${bs.seat?.row}S${bs.seat?.number}`),
+                amount: booking.totalAmount,
+              })
 
               return (
                 <motion.div
@@ -174,36 +222,62 @@ export function MyBookingsView() {
                             className="overflow-hidden"
                           >
                             <Separator />
-                            <div className="p-4 md:p-5 space-y-4">
-                              <div>
-                                <p className="text-sm font-medium mb-2">Seats ({bookingSeats.length})</p>
-                                <div className="flex flex-wrap gap-2">
-                                  {bookingSeats.map((bs: any) => (
-                                    <Badge key={bs.id} variant="outline" className="text-sm">
-                                      R{bs.seat?.row} · S{bs.seat?.number}
-                                      <span className="ml-1 text-muted-foreground">
-                                        ({bs.seat?.seatCategory?.name})
-                                      </span>
-                                    </Badge>
-                                  ))}
-                                </div>
-                              </div>
+                            <div className="p-4 md:p-5">
+                              <div className="grid sm:grid-cols-[1fr,auto] gap-6">
+                                <div className="space-y-4">
+                                  <div>
+                                    <p className="text-sm font-medium mb-2">Seats ({bookingSeats.length})</p>
+                                    <div className="flex flex-wrap gap-2">
+                                      {bookingSeats.map((bs: any) => (
+                                        <Badge key={bs.id} variant="outline" className="text-sm">
+                                          R{bs.seat?.row} · S{bs.seat?.number}
+                                          <span className="ml-1 text-muted-foreground">
+                                            ({bs.seat?.seatCategory?.name})
+                                          </span>
+                                        </Badge>
+                                      ))}
+                                    </div>
+                                  </div>
 
-                              <div className="flex items-center justify-between text-sm text-muted-foreground">
-                                <span>Booked on {format(parseISO(booking.createdAt), 'MMM d, yyyy')}</span>
+                                  <div className="flex items-center justify-between text-sm text-muted-foreground">
+                                    <span>Booked on {format(parseISO(booking.createdAt), 'MMM d, yyyy')}</span>
+                                    {!isCancelled && (
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          setCancelId(booking.id)
+                                        }}
+                                      >
+                                        <X className="mr-1.5 h-3.5 w-3.5" />
+                                        Cancel Booking
+                                      </Button>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* QR Code for each booking */}
                                 {!isCancelled && (
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      setCancelId(booking.id)
-                                    }}
-                                  >
-                                    <X className="mr-1.5 h-3.5 w-3.5" />
-                                    Cancel Booking
-                                  </Button>
+                                  <div className="flex flex-col items-center gap-2">
+                                    <div className="rounded-xl border-2 border-dashed border-muted-foreground/20 p-2.5 bg-white">
+                                      <QRTicket value={qrData} size={110} />
+                                    </div>
+                                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                      <QrCode className="h-3 w-3" />
+                                      E-Ticket QR
+                                    </div>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-7 text-xs gap-1"
+                                      onClick={() => handleDownloadTicket(booking)}
+                                    >
+                                      <Download className="h-3 w-3" />
+                                      Download
+                                    </Button>
+                                  </div>
                                 )}
                               </div>
                             </div>
@@ -225,7 +299,7 @@ export function MyBookingsView() {
           <AlertDialogHeader>
             <AlertDialogTitle>Cancel Booking</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to cancel this booking? Your seats will be released and this action cannot be undone.
+              Are you sure you want to cancel this booking? Your seats will be released and offered to the next person on the waitlist. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

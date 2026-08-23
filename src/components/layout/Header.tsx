@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Ticket, Menu, ClipboardList, LayoutDashboard, CalendarDays, LogOut } from 'lucide-react'
+import { Ticket, Menu, ClipboardList, LayoutDashboard, CalendarDays, LogOut, Hourglass } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -57,6 +57,7 @@ export function Header() {
   const navItems: { label: string; view: ViewType; icon: typeof CalendarDays; show: boolean }[] = [
     { label: 'Browse Events', view: 'home', icon: CalendarDays, show: true },
     { label: 'My Bookings', view: 'my-bookings', icon: ClipboardList, show: !!user },
+    { label: 'Waitlist', view: 'waitlist', icon: Hourglass, show: !!user },
     { label: 'Admin', view: 'admin-dashboard', icon: LayoutDashboard, show: user?.role === 'ADMIN' },
     { label: 'Dashboard', view: 'organiser-dashboard', icon: LayoutDashboard, show: user?.role === 'ORGANISER' },
   ]
@@ -121,6 +122,10 @@ export function Header() {
                 <DropdownMenuItem onClick={() => handleNav('my-bookings')}>
                   <ClipboardList className="mr-2 h-4 w-4" />
                   My Bookings
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleNav('waitlist')}>
+                  <Hourglass className="mr-2 h-4 w-4" />
+                  Waitlist
                 </DropdownMenuItem>
                 {(user.role === 'ADMIN' || user.role === 'ORGANISER') && (
                   <DropdownMenuItem
