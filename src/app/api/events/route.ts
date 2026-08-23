@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { seedIfEmpty } from '@/lib/auto-seed'
 
 export async function GET(req: Request) {
   try {
+    await seedIfEmpty()
+
     const { searchParams } = new URL(req.url)
     const type = searchParams.get('type')
     const search = searchParams.get('search')
