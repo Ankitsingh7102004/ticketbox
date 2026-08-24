@@ -2,6 +2,8 @@
 
 A full-stack ticket booking application with interactive seat maps, QR code tickets, waitlist management, and role-based authentication. Built with Next.js 16, TypeScript, Tailwind CSS 4, Prisma ORM, and PostgreSQL.
 
+Website link: https://ticketboxoriginal.netlify.app/
+
 ## Features
 
 - **Event Discovery**: Browse movies and concerts with filtering by type, search, and date
@@ -411,7 +413,6 @@ ticketbox/
 └── .env.example               # Environment variable template
 ```
 
-Website link: https://ticketboxoriginal.netlify.app/
 ## License
 
 MIT
