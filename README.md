@@ -411,6 +411,7 @@ ticketbox/
 └── .env.example               # Environment variable template
 ```
 
+Website link: https://ticketboxoriginal.netlify.app/
 ## License
 
 MIT
